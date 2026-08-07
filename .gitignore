@@ -13,7 +13,6 @@ coverage
 .nyc_output
 
 # Environment variables
-.env
 .env*.local
 !.env.example
 
@@ -21,11 +20,6 @@ coverage
 .vercel
 
 # IDEs and editors
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 .idea
 *.swp
 *.swo
@@ -45,3 +39,8 @@ yarn-error.log*
 .cache
 tmp
 temp
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+config.bat
