@@ -4,8 +4,6 @@ A single-page React tool that reads two months of daily store orders, flags the 
 paying attention to, and explains why each one was flagged, with the arithmetic on show, so
 the owner can disagree.
 
-See [PRD.md](PRD.md) for the full specification.
-
 ## What it does
 
 The page answers three questions in order:
@@ -17,6 +15,22 @@ The page answers three questions in order:
 | What should I do next? | Each finding names the day, the size of the change, and its evidence      |
 
 Clicking a finding or a point on the chart opens that day in full, with the days either side.
+
+## Scenarios
+
+A picker at the top of the page swaps the dataset the monitor reads, so every state the app
+can reach is reachable without editing a file:
+
+| Scenario                | What it shows                                                              |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Two months of trading   | The default. A spike, a collapse, a value-per-order drop, 8 malformed rows |
+| A weekend outage        | Clean data, two days down, plus the rebound day the sunken baseline flags  |
+| A quiet stretch         | Six clean weeks, nothing flagged: the all-clear state                     |
+| No data yet             | An empty file: the empty state                                             |
+| An unreadable file      | Every row malformed: the error state                                       |
+
+Switching scenario clears any dismissals made against the previous one, since finding ids are
+scoped to dates that no longer exist in the new set.
 
 ## The detection rule
 
@@ -62,12 +76,9 @@ arithmetic can be checked by hand. If the owner knows 07 Mar was their Instagram
 they click **Disagree**, pick a reason, and the finding moves to **Dismissed**.
 
 Dismissed findings are never deleted. They can be revealed, restored one by one, or cleared all
-at once. Finding ids are derived from date and type, so they stay stable across reloads, and
-dismissals persist in `localStorage` under a versioned key. A corrupt stored value is discarded
-and treated as empty, the same defensive rule the dataset gets.
+at once. Finding ids are derived from date and type, so they stay stable while the page lives.
+Dismissals are held in memory for the session only and reset on reload.
 
-**Why not delete:** a tool whose whole job is earning trust must not destroy the user's own
-audit trail. Reversibility is the point.
 
 ## Running it
 
@@ -76,33 +87,21 @@ pnpm install
 pnpm dev      # http://localhost:5173
 ```
 
-| Command             | What it does                       |
-| ------------------- | ---------------------------------- |
-| `pnpm dev`          | Start the dev server               |
-| `pnpm build`        | Build for production into `dist/`  |
-| `pnpm serve`        | Preview the production build       |
-| `pnpm test`         | Run the tests once                 |
-| `pnpm test:watch`   | Run the tests in watch mode        |
-| `pnpm coverage`     | Tests with a coverage report       |
-| `pnpm check-types`  | TypeScript typecheck               |
-| `pnpm check`        | Biome format and lint with autofix |
-
 ## Tests
-
-113 tests, all in Vitest. The analysis layer is plain functions with no React imports, so it is
-tested in isolation:
-
-- **Validation**: every malformed row type, plus non-array input and non-object rows
-- **Detection**: spike, collapse, value-per-order drop, quiet data, the threshold boundary,
-  fewer than 7 prior days, a zero baseline, empty and single-record datasets
-- **The shipped dataset**: asserts the demo data still produces the findings described above
-- **Persistence**: corrupt stored value, unknown finding id, restore, clear all
-- **The page**: the disagree, dismiss, restore and clear-all round trip, evidence on demand,
-  and the empty, error and all-clear states
 
 ```bash
 pnpm test
 ```
+
+tests in Vitest, across three files. The analysis layer is plain functions with no React
+imports, so it is tested directly rather than through the interface.
+
+| File                          | Tests | What it covers                                                                                                                    |
+| ----------------------------- | ----: | --------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/detection.test.ts`       |    13 | The rule itself: spike, collapse, value-per-order drop, quiet data left alone, the exact threshold boundary, the first seven days, a zero baseline, evidence, severity ordering |
+| `lib/validation.test.ts`      |    12 | Every malformed row the dataset contains, plus a dataset that is not a list at all                                                |
+| `routes/home.test.tsx`        |     6 | The disagree round trip: evidence on demand, dismiss, restore, clear all, and opening a day in full                               |
+                                                              |
 
 ## Built with
 
@@ -113,20 +112,8 @@ pnpm test
 - **Vitest** + **Testing Library**
 - **Biome**: lint and format
 
-Validation and detection run inside `useMemo`, once per dataset rather than per render.
-Dismissal persistence is isolated behind one hook, `useDismissals`.
 
-## Design notes
 
-The page is monochrome by deliberate choice: the only colour in the interface is the alert
-ramp, so anything coloured is something that wants attention. Severity is ordered, not
-categorical, so high and medium are two steps of one hue rather than two competing hues. The
-pair was checked for lightness band, contrast and colour-vision separation against both the
-light and dark surfaces. Figures are set in IBM Plex Mono with tabular numerals so columns of
-numbers line up; body copy is Inter.
-
-Each finding carries a deviation bar showing where the day landed against the ±50% band the
-rule ignores, so the threshold being crossed is visible rather than merely stated.
 
 ## Known limitations
 
@@ -139,13 +126,33 @@ Stated up front, because the interesting question is where the rule is wrong.
 - **Slow decay is invisible.** A store losing 2% of orders daily for a month never trips the
   rule, because the baseline decays alongside the real numbers, a worse problem than any spike
   this catches.
-- **A single outlier poisons the baseline** for the following 7 days. Visible in the demo data:
-  the 07 Mar spike lifts the baseline that 14 Mar is judged against, from ~123 to 154.
-- **±50% is arbitrary.** Tuned by eye for this dataset. A high-variance store needs a wider
-  threshold, a stable one wants it tighter. A standard-deviation approach would adapt
-  automatically but is harder to explain to a non-technical owner. Legibility was chosen over
-  statistical rigour.
-- **Dismissals are per-browser.** `localStorage` is not shared across devices or users. Two
-  people reviewing the same store see different dismissal states. A real product needs a server.
+- **Dismissals do not survive a reload.** They live in memory for the session. A real product
+  would put them on a server so the judgement is shared across devices and people, rather than
+  asking the same owner the same question again tomorrow morning.
 - **Days excluded by validation leave gaps in the chart**, and the rolling window steps over
   them rather than treating them as zero. The count of excluded days is stated under the chart.
+
+
+## Resources used
+
+Every library, framework and reference relied on during development.
+
+### Runtime dependencies
+
+| Package                                        | Version | Used for                                    |
+| ---------------------------------------------- | ------- | ------------------------------------------- |
+| `react`, `react-dom`                           | 19.2    | The framework                               |
+| `react-router`                                 | 8.3     | Client routing                              |
+| `recharts`                                     | 3.10    | Chart rendering only; all analysis is ours  |
+| `radix-ui`, `@base-ui/react`                   | 1.6     | Accessible primitives underneath shadcn/ui  |
+| `lucide-react`                                 | 1.21    | Icons                                       |
+| `class-variance-authority`, `clsx`, `tailwind-merge` | —  | Conditional class composition               |
+| `next-themes`                                  | 0.4     | Light and dark theme switching              |
+| `sonner`                                       | 2.0     | Toast notifications                         |
+| `motion`                                       | 12.43   | Transitions                                 |
+| `tw-animate-css`                               | 1.4     | Tailwind animation utilities                |
+| `@fontsource-variable/inter`, `@fontsource/ibm-plex-mono` | 5.3 | Self-hosted typefaces            |
+
+                      | 2.5     | Linting and formatting            |
+
+
