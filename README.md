@@ -132,6 +132,16 @@ Stated up front, because the interesting question is where the rule is wrong.
 - **Days excluded by validation leave gaps in the chart**, and the rolling window steps over
   them rather than treating them as zero. The count of excluded days is stated under the chart.
 
+## Known bugs and incomplete work
+
+Separate from the limitations above, which are properties of the rule. These are properties of
+the software.
+- **There is no error boundary.** Bad data is handled by the validation layer and every state is
+  covered, but an unexpected render error in a component would blank the page rather than
+  degrade to a message.
+- **Dismissal reasons are a fixed list.** The owner picks from preset reasons and cannot type a
+  free-text explanation, which would be the more useful record of why they disagreed.
+
 
 ## Resources used
 
