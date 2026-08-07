@@ -1,0 +1,35 @@
+[
+  {
+    "date": "not-a-date",
+    "orders": 120,
+    "revenue": 3600
+  },
+  {
+    "date": "2026-06-40",
+    "orders": 118,
+    "revenue": 3510.2
+  },
+  {
+    "orders": 131,
+    "revenue": 3902.5
+  },
+  {
+    "date": "2026-06-03",
+    "orders": "lots",
+    "revenue": 3288.4
+  },
+  {
+    "date": "2026-06-04",
+    "orders": -12,
+    "revenue": 3005.1
+  },
+  "a stray line from the export",
+  {
+    "date": "2026-06-05",
+    "orders": null,
+    "revenue": 3140.75
+  },
+  {
+    "date": "2026-06-06"
+  }
+]

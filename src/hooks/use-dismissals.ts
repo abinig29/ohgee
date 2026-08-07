@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
-import { readStoredDismissals, writeStoredDismissals } from "@/lib/storage";
 import type { DismissalMap } from "@/lib/types";
 
 export type DismissalControls = {
@@ -11,16 +10,7 @@ export type DismissalControls = {
 };
 
 export function useDismissals(): DismissalControls {
-  const [dismissals, setDismissals] = useState<DismissalMap>(readStoredDismissals);
-  const hydrated = useRef(false);
-
-  useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    writeStoredDismissals(dismissals);
-  }, [dismissals]);
+  const [dismissals, setDismissals] = useState<DismissalMap>({});
 
   const dismiss = useCallback((id: string, reason: string) => {
     setDismissals((current) => ({
